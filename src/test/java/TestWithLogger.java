@@ -6,57 +6,69 @@ import org.openqa.selenium.support.events.EventFiringWebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-public class TestWithLogger {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+public class TestWithLogger extends BaseTest {
 
     public static void main(String[] args) {
 
         //Вход в Админ Панель
         EventFiringWebDriver driver = getConfiguredDriver();
-        driver.get("http://prestashop-automation.qatestlab.com.ua/admin147ajyvk0/");
-        WebElement login = driver.findElement(By.id("email"));
-        login.sendKeys("webinar.test@gmail.com");
-        WebElement pass = driver.findElement(By.id("passwd"));
-        pass.sendKeys("Xcg7299bnSmMuRLp9ITw");
-        WebElement button = driver.findElement(By.className("ladda-label"));
-        button.click();
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.open();
+        loginPage.fillEmailField();
+        loginPage.fillPasswdField();
+        loginPage.clickLoginButton();
 
         //Явное ожидание входа в Админ Панель
         WebDriverWait wait = new WebDriverWait(driver, 10);
-        wait.until(ExpectedConditions.urlToBe("http://prestashop-automation.qatestlab.com.ua/admin147ajyvk0/index.php?controller=AdminDashboard&token=f57b9e0913a4757c6ba02314cf473896"));
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.className("process-icon-toggle-off")));
 
         //Выбор пункта меню Каталог -> категории
-        WebElement adminCatalog = driver.findElement(By.id("subtab-AdminCatalog"));
+        WebElement catalogMenuBtn = driver.findElement(By.id("subtab-AdminCatalog"));
         Actions actions = new Actions(driver);
-        actions.moveToElement(adminCatalog).build().perform();
+        actions.moveToElement(catalogMenuBtn).build().perform();
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("subtab-AdminCatalog")));
-        adminCatalog.findElements(By.cssSelector("li")).get(1).click();
+        catalogMenuBtn.findElements(By.cssSelector("li")).get(1).click();
 
         //Явное ожидание загрузки страницы управления категориями и появления кнопки «Добавить категорию»
         wait.until(ExpectedConditions.presenceOfElementLocated(By.id("page-header-desc-category-new_category")));
 
         //Нажатие кнопки «Добавить категорию» для перехода к созданию новой категории
-        WebElement addCategory = driver.findElement(By.id("page-header-desc-category-new_category"));
-        addCategory.click();
+        WebElement addCategoryBtn = driver.findElement(By.id("page-header-desc-category-new_category"));
+        addCategoryBtn.click();
 
         //Явное ожидание загрузки страницы
         wait.until(ExpectedConditions.presenceOfElementLocated(By.id("name_1")));
 
         //Ввод названия новой категории и сохранение изменения
-        WebElement addNameCategory = driver.findElement(By.id("name_1"));
-        addNameCategory.sendKeys("Children");
-        WebElement saveButton = driver.findElement(By.id("category_form_submit_btn"));
-        saveButton.click();
+        WebElement addCategoryNameField = driver.findElement(By.id("name_1"));
+        addCategoryNameField.sendKeys("Children");
+        WebElement saveCategoryBtn = driver.findElement(By.id("category_form_submit_btn"));
+        saveCategoryBtn.click();
+
+        //Проверка появления сообщения об успешном создании категории
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.className("bootstrap")));
+        assertTrue("No new category", driver.findElements(By.className("bootstrap")).size() > 0);
+        System.out.println ("New category has been created successfully");
 
         //Явное ожидание загрузки страницы
         wait.until(ExpectedConditions.presenceOfElementLocated(By.name("categoryFilter_name")));
 
         //Фильтрация таблицы категорий по имени
-        WebElement filterByName = driver.findElement(By.name("categoryFilter_name"));
-        filterByName.sendKeys("Children");
-        filterByName.submit();
+        WebElement nameFilterField = driver.findElement(By.name("categoryFilter_name"));
+        nameFilterField.sendKeys("Children");
+        nameFilterField.submit();
 
         //Явное ожидание появления записи созданной категории
         wait.until(ExpectedConditions.presenceOfElementLocated(By.className("pointer")));
+
+        //Проверка наличия созданной категории в таблице категорий после её фильтрации
+        WebElement tableCategory = driver.findElement(By.id("table-category"));
+        String actualCategoryName = tableCategory.findElements(By.cssSelector("td")).get(2).getText();
+        assertEquals("Wrong category name", "Children", actualCategoryName);
+        System.out.println("Expected category name: Children." + " Actual category name: "  + actualCategoryName + ".");
 
         //Закрытие браузера
         driver.quit();
